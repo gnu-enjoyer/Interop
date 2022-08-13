@@ -7,13 +7,13 @@ class Loader {
   void *handle;
 
 public:
-  explicit Loader(const char *fd) { handle = dlopen(fd, RTLD_LAZY); };
+  explicit Loader(const char *fd) { 
+    handle = dlopen(fd, RTLD_LAZY); 
+
+    if(!handle) throw std::runtime_error("obj not found");    
+    };
 
   ~Loader() { dlclose(handle); };
-
-  Loader(const Loader &) = delete;
-
-  Loader(Loader &&) = delete;
 
   struct FFI {
     void *addr;
@@ -28,16 +28,17 @@ public:
 
 int main() {
 
-  auto FFI = Loader("lib/dyn.so");
+  Loader FFILdr = Loader("lib/static.so");
 
-  auto Fn = FFI.GetFn("add3");
+  auto Fn = FFILdr.GetFn("add3");
 
-  try {
-    std::cout << Fn.Invoke<int, int>(1234) << std::endl;
+  std::cout << Fn.Invoke<int, int>(1234l) << std::endl;
 
-    if (Fn.Invoke<int>(1337) != 1340)
-      throw std::runtime_error("Bad invocation");
-  } catch (...) {}
+  if (Fn.Invoke<int>(1337) != 1340) throw std::runtime_error("Bad invocation");
+
+  auto FnString = FFILdr.GetFn("strng");
+
+  std::cout << FnString.Invoke<const char*>("helloNim") << std::endl;
 
   return 0;
 }
